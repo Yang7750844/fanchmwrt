@@ -12,17 +12,16 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Initialize environment (fix dependency compatibility)
+      - name: Initialize environment (fix package not found)
         run: |
-          # 替换为清华国内源，加快依赖下载，避免网络超时
-          sudo sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
+          # 替换为阿里云源，提升兼容性
+          sudo sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
           sudo apt update -y
           sudo apt full-upgrade -y
-          # 去掉旧版本限制（gcc-6、make4.1），安装系统兼容版本
-          sudo apt install -y binutils bzip2 flex gawk gcc getopt grep libc-dev libz-dev make perl python3 rsync subversion unzip dos2unix libfuse-dev
-          # 安装fanchmwrt专用编译环境
-          sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-          # 清理冗余依赖，释放磁盘空间
+          # 替换getopt为util-linux（包含getopt工具），修复包找不到问题
+          sudo apt install -y binutils bzip2 flex gawk gcc util-linux libc-dev libz-dev make perl python3 rsync subversion unzip dos2unix libfuse-dev
+          # 手动安装编译环境核心依赖
+          sudo apt install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev git libssl-dev xsltproc wget
           sudo apt autoremove -y && sudo apt clean -y
 
       - name: Update fanchmwrt feeds
