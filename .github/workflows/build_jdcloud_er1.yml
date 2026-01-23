@@ -12,34 +12,39 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Initialize environment
+      - name: Initialize environment (fix dependency compatibility)
         run: |
+          # 替换为清华国内源，加快依赖下载，避免网络超时
+          sudo sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
           sudo apt update -y
           sudo apt full-upgrade -y
-          sudo apt install -y binutils bzip2 flex gawk gcc-6+ getopt grep libc-dev libz-dev make4.1+ perl python3.7+ rsync subversion unzip dos2unix libfuse-dev
+          # 去掉旧版本限制（gcc-6、make4.1），安装系统兼容版本
+          sudo apt install -y binutils bzip2 flex gawk gcc getopt grep libc-dev libz-dev make perl python3 rsync subversion unzip dos2unix libfuse-dev
+          # 安装fanchmwrt专用编译环境
           sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          # 清理冗余依赖，释放磁盘空间
           sudo apt autoremove -y && sudo apt clean -y
 
-      - name: Update feeds
+      - name: Update fanchmwrt feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Import config
+      - name: Import JDCloud ER1 config file
         run: |
           cp deconfig/fanchmwrt_jdcloud_er1.config .config
           make defconfig
 
-      - name: Download dependencies
+      - name: Download compilation dependencies
         run: |
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \;
 
-      - name: Build firmware
+      - name: Build JDCloud ER1 firmware
         run: |
           make -j$(nproc) || make -j1 V=s
 
-      - name: Upload artifacts
+      - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
         with:
           name: jdcloud-er1-firmware
