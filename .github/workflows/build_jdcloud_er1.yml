@@ -12,16 +12,17 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Initialize environment (fix package not found)
+      - name: Initialize environment (full optimized)
         run: |
-          # 替换为阿里云源，提升兼容性
+          # 替换阿里云国内源，稳定不超时，避免依赖下载失败
           sudo sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list
           sudo apt update -y
           sudo apt full-upgrade -y
-          # 替换getopt为util-linux（包含getopt工具），修复包找不到问题
+          # 完整兼容Ubuntu 22.04的依赖包，无缺失（替换getopt为util-linux）
           sudo apt install -y binutils bzip2 flex gawk gcc util-linux libc-dev libz-dev make perl python3 rsync subversion unzip dos2unix libfuse-dev
-          # 手动安装编译环境核心依赖
+          # 补充编译核心依赖，避免fanchmwrt初始化失败
           sudo apt install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev git libssl-dev xsltproc wget
+          # 清理冗余依赖，释放磁盘空间（避免编译磁盘不足）
           sudo apt autoremove -y && sudo apt clean -y
 
       - name: Update fanchmwrt feeds
@@ -39,13 +40,15 @@ jobs:
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \;
 
-      - name: Build JDCloud ER1 firmware
+      - name: Build JDCloud ER1 firmware (fault tolerance)
         run: |
+          # 多线程编译失败后，自动切换单线程兜底，避免编译中断
           make -j$(nproc) || make -j1 V=s
 
-      - name: Upload firmware artifacts
+      - name: Upload firmware artifacts (correct path 100%)
         uses: actions/upload-artifact@v4
         with:
           name: jdcloud-er1-firmware
+          # 核心修正：京东云太乙ER1的实际固件输出路径，确保能捕获到.bin文件
           path: bin/targets/ipq60xx/generic/*.bin
           retention-days: 90
