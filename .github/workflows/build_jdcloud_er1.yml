@@ -1,57 +1,47 @@
-name: 京东云太乙-fanchmwrt固件编译
+name: JDCloud-ER1-Fanchmwrt-Build
 
-# 触发方式：手动触发（避免自动编译占用资源）
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # 适配fanchmwrt编译环境
+    runs-on: ubuntu-22.04
     steps:
-      # 步骤1：拉取fanchmwrt源码
-      - name: 检出仓库代码
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1  # 仅拉取最新代码，加快速度
+          fetch-depth: 1
 
-      # 步骤2：安装编译依赖
-      - name: 初始化编译环境
+      - name: Initialize environment
         run: |
           sudo apt update -y
           sudo apt full-upgrade -y
           sudo apt install -y binutils bzip2 flex gawk gcc-6+ getopt grep libc-dev libz-dev make4.1+ perl python3.7+ rsync subversion unzip dos2unix libfuse-dev
-          # 安装fanchmwrt专用依赖
           sudo bash -c 'bash <(curl -sL https://build-scripts.immortalwrt.org/init_build_environment.sh)'
           sudo apt autoremove -y && sudo apt clean -y
 
-      # 步骤3：更新fanchmwrt软件包源
-      - name: 更新软件包
+      - name: Update feeds
         run: |
-          ./scripts/feeds update -a  # 更新软件包列表
-          ./scripts/feeds install -a  # 安装所有软件包到编译环境
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-      # 步骤4：导入京东云太乙专属配置文件
-      - name: 导入设备配置
+      - name: Import config
         run: |
-          # 确保配置文件存在于deconfig目录（后续步骤会创建）
           cp deconfig/fanchmwrt_jdcloud_er1.config .config
-          make defconfig  # 自动补全配置依赖，避免编译报错
+          make defconfig
 
-      # 步骤5：下载编译依赖源码
-      - name: 下载依赖文件
+      - name: Download dependencies
         run: |
-          make download -j$(nproc)  # 多线程下载依赖
-          find dl -size -1024c -exec rm -f {} \;  # 删除无效依赖文件
+          make download -j$(nproc)
+          find dl -size -1024c -exec rm -f {} \;
 
-      # 步骤6：编译固件
-      - name: 编译固件
+      - name: Build firmware
         run: |
-          make -j$(nproc) || make -j1 V=s  # 多线程编译，失败则单线程输出详细日志
+          make -j$(nproc) || make -j1 V=s
 
-      # 步骤7：上传编译产物（固件）
-      - name: 上传固件
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: 京东云太乙-fanchmwrt固件
-          path: bin/targets/qualcommax/ipq60xx/*.bin  # 固件输出路径
-          retention-days: 90  # 固件保留90天
+          name: jdcloud-er1-firmware
+          path: bin/targets/qualcommax/ipq60xx/*.bin
+          retention-days: 90
