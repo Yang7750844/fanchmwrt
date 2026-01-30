@@ -4,9 +4,8 @@ START=99
 
 boot() {
 	case $(board_name) in
-	yuncore,fap650)
-		fw_setenv owrt_bootcount 0
+	linksys,mr7350)
+		mtd resetbc s_env || true
 	;;
 	esac
 }
-
