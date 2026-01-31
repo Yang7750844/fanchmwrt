@@ -21,7 +21,9 @@ jobs:
           sudo apt update -y
           sudo apt install -y build-essential libssl-dev libncurses5-dev git wget curl subversion unzip gawk gettext libffi-dev python3 python3-pip python3-dev rsync time
       - name: Build firmware
-        run: |
+        env:
+          TERM: dumb
+        run:
           make olddefconfig
           make -j$(nproc) V=s
       - name: Upload firmware
